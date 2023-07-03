@@ -1,0 +1,33 @@
+@import '../../styles/colors.scss';
+@import '../../styles/fonts.scss';
+
+.messageRow {
+  display: flex;
+
+  .messageBlock {
+    background: $black;
+    padding: 10px 12px;
+
+    .message {
+      margin-top: 4px;
+      display: flex;
+      margin: 0;
+
+      &Author {
+        margin-bottom: 4px;
+        transform: translateX(-1px);
+      }
+      &Time {
+        margin-left: 5px;
+        color: $white50;
+        transform: translateY(1px);
+
+        &::before {
+          content: '·';
+          margin-right: 4px;
+          margin-left: 1px;
+        }
+      }
+    }
+  }
+}

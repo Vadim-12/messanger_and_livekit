@@ -1,0 +1,10 @@
+version: "3"
+
+services:
+  livekit:
+    build: ../../services/livekit
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "7882:7882/udp"
+      - "5100-6100:5100-6100"

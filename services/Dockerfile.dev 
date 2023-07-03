@@ -1,0 +1,9 @@
+FROM livekit/livekit-server:v1.2.0
+
+COPY ./livekit.local.yaml /livekit.yaml
+
+ARG LIVEKIT_IP
+
+RUN sed -i "s/0.0.0.0/$LIVEKIT_IP/g" /livekit.yaml
+
+CMD [ "--config", "/livekit.yaml" ]

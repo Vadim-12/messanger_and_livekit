@@ -1,0 +1,35 @@
+{
+	"rules": {
+		"indent": [
+			"error",
+			4
+		],
+		"@typescript-eslint/indent": [
+			"error",
+			4
+		],
+		"import/prefer-default-export": "off",
+		"import/no-default-export": "warn",
+		"max-len": [
+			"error",
+			{
+				"code": 120
+			}
+		],
+		"no-plusplus": "off",
+		"linebreak-style": [
+			"error",
+			"unix"
+		],
+		"no-underscore-dangle": "off",
+		"array-callback-return": "off"
+	},
+	"env": {
+		"node": true
+	},
+	"parserOptions": {
+		"sourceType": "module",
+		"project": ["./tsconfig.eslint.json"]
+	},
+	"extends": ["airbnb-typescript/base"]
+}

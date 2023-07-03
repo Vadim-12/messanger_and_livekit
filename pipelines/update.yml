@@ -1,0 +1,14 @@
+stages:
+  - update
+
+update:
+  stage: update
+  image: registry.s2.git.fora-soft.com/forasoft/dind
+  tags:
+    - kmb-deploy
+  script:
+    - cd deploy/staging
+    - docker login -u gitlab-ci-token -p ${CI_JOB_TOKEN} ${CI_REGISTRY}
+    - docker-compose --compatibility -p livekit_vadim_agarkov -f docker-compose.yml up -d --force-recreate --build
+  only:
+    - feat/FSIA-704/creating_a_video_chat

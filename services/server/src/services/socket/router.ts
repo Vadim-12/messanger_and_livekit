@@ -1,5 +1,5 @@
 import { Socket } from 'socket.io';
-import { ICbFn, IRouteFn } from '../../../types/socket';
+import { ICbFn, IRouteFn } from '../../types/socket';
 import { emptyFunction } from '../../utils/function/emptyFunction';
 
 export class Router {

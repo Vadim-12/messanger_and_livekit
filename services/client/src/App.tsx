@@ -19,7 +19,7 @@ function App() {
         path={LOGIN_ROUTE}
         element={<LoginPage name={name} setName={setName} />}
       />
-      <Route path={ROOM_ROUTE} element={<RoomPage name={name} />} />
+      <Route path={ROOM_ROUTE} element={<RoomPage name={name} setName={setName} />} />
       <Route path={ROOM_IS_FULL_ROUTE} element={<RoomIsFullPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>

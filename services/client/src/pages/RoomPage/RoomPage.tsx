@@ -32,42 +32,56 @@ import { AudioRenderer, VideoRenderer } from '@livekit/react-components';
 import { vars } from 'config/vars';
 import {
   LocalAudioTrack,
+  LocalTrackPublication,
   LocalVideoTrack,
-  ParticipantEvent,
   RemoteTrack,
   Room,
   RoomEvent,
-  TrackPublication,
   VideoPresets,
   createLocalAudioTrack,
   createLocalVideoTrack,
 } from 'livekit-client';
-import ParticipantView from 'components/ParticipantView';
+import MuteMicrophoneIcon from 'ui/icons/media/MuteMicrophoneIcon';
+import MuteCameraIcon from 'ui/icons/media/MuteCameraIcon';
 
 interface Props {
   name: string;
+  setName: React.Dispatch<React.SetStateAction<string>>;
 };
 
-const RoomPage: React.FC<Props> = ({ name }) => {
-  const [participants, setParticipants] = useState<IParticipant[]>([]);
+const catsArray = [
+  //<Cat2Icon/>,
+  <Cat3Icon className={styles.catIcon}/>,
+  <Cat4Icon className={styles.catIcon}/>,
+  <CatIcon className={styles.catIcon}/>,
+];
 
+const RoomPage: React.FC<Props> = ({ name, setName }) => {
   const navigate = useNavigate();
+
+  const [participants, setParticipants] = useState<IParticipant[]>([]);
+  const [refreshThePage, setRefreshThePage] = useState<number>(0);
 
   const [messages, setMessages] = useState<IMessage[]>([]);
   const [inputMessage, setInputMessage] = useState<string>('');
+
   const [isChatActive, setIsChatActive] = useState<boolean>(true);
-  const [isHoverOnHideTextChatBtn, setIsHoverOnHideTextChatBtn] =
-    useState<boolean>(false);
+  const [isHoverOnHideTextChatBtn, setIsHoverOnHideTextChatBtn] = useState<boolean>(false);
   const [sentMessages, setSentMessages] = useState<number>(0);
+
   const [configureWebRTC, setConfigureWebRTC] = useState<boolean>(false);
+  const [isMicrophoneEnabled, setIsMicrophoneEnabled] = useState<boolean>(true);
+  const [isCameraEnabled, setIsCameraEnabled] = useState<boolean>(true);
 
   const chatRef = createRef<HTMLElement>();
 
   const [token, setToken] = useState<string>('');
-  const [localVideoTrack, setLocalVideoTrack] =
-    useState<LocalVideoTrack | null>(null);
-  const [localAudioTrack, setLocalAudioTrack] =
-    useState<LocalAudioTrack | null>(null);
+  const [localVideoTrack, setLocalVideoTrack] = useState<LocalVideoTrack>();
+  const [localAudioTrack, setLocalAudioTrack] = useState<LocalAudioTrack>();
+  const [cameraLtp, setCameraLtp] = useState<LocalTrackPublication>();
+  const [microphoneLtp, setMicrophoneLtp] = useState<LocalTrackPublication>();
+
+  const room = useMemo(() => new Room(), [socket]);
 
   const getToken = useCallback(async (identity: string) => {
     try {
@@ -82,11 +96,6 @@ const RoomPage: React.FC<Props> = ({ name }) => {
     }
   }, [name]);
 
-  // сделать AudioRender VideoRender и через потоки
-  // import {AudioRenderer, VideoRenderer} from "@livekit/react-components";
-
-  const room = new Room();
-
   useEffect(() => {
     if (!configureWebRTC && room && token) {
       webRTCconnect();
@@ -97,51 +106,113 @@ const RoomPage: React.FC<Props> = ({ name }) => {
   const webRTCconnect = async () => {
     if (room) {
       room.connect(vars.LK_API_URL, token);
-      room.localParticipant.enableCameraAndMicrophone();
 
       room.on(RoomEvent.ParticipantConnected, (np) => {
-        console.log('connected participant', np, participants, room);
-        
         const videoTracks: RemoteTrack[] = [];
         const audioTracks: RemoteTrack[] = [];
-
         const newParticipant: IParticipant = {
-          socket,
           audioTracks,
           videoTracks,
           identity: np.identity,
         };
-
         setParticipants((prev) => [...prev, newParticipant]);
       });
       room.on(RoomEvent.ParticipantDisconnected, (dp) => {
-        console.log('disconnected participant', dp);
         setParticipants((prev) => prev.filter((p) => p.identity !== dp.identity));
       });
-      room.on(ParticipantEvent.TrackPublished, (rtp, participant) => {
-        console.log('track published', rtp, participant);
-
+      room.on(RoomEvent.TrackSubscribed, (track, rtp, participant) => {
+        setRefreshThePage(prev => prev + 1);
+        
         setParticipants(prev => {
           const p = prev.find(p => p.identity === participant.identity);
-
           if (!p) {
-            throw new Error('Такого пользователя не существует');
+            const track = rtp.track;
+            if (!track) {
+              return prev;
+            }
+
+            const pp: IParticipant = {
+              identity: participant.identity,
+              audioTracks: [],
+              videoTracks: [],
+            };
+
+            if (track.kind === 'audio') {
+              pp.audioTracks.push(track);
+            }
+
+            prev.push(pp);
+            return prev;
           }
-          if (rtp.kind === 'video') {
-            if (rtp.track) {
-              p.videoTracks.push(rtp.track);
-              console.log('NEW VIDEO TRACK', rtp.track)
-            }
+          if (track.kind === 'video') {
+            p.videoTracks.push(track);
           } else if (rtp.kind === 'audio') {
-            if (rtp.track) {
-              p.audioTracks.push(rtp.track);
-              console.log('NEW AUDIO TRACK', rtp.track)
-            }
+            p.audioTracks.push(track);
           }
 
           return prev;
         });
       });
+      room.on(RoomEvent.TrackMuted, (tp, participant) => {
+        console.log('TRACK MUTED');
+        const track = tp.track;
+
+        if (track) {
+          setParticipants(prev => {
+            const p = prev.find(p => p.identity === participant.identity);
+
+            if (p) {
+              if (track.kind === 'video') {
+                p.videoTracks = p.videoTracks.map(vt => {
+                  if (vt.sid === tp.trackSid) {
+                    vt.setMuted(true);
+                  }
+                  return vt;
+                });
+              } else if (track.kind === 'audio') {
+                p.audioTracks = p.audioTracks.map(at => {
+                  if (at.sid === tp.trackSid) {
+                    at.setMuted(true);
+                  }
+                  return at;
+                });
+              }
+            }
+
+            return prev;
+          });
+        }
+      });
+      room.on(RoomEvent.TrackUnmuted, (tp, participant) => {
+        console.log('TRACK UNMUTED');
+        const track = tp.track;
+
+        if (track) {
+          setParticipants(prev => {
+            const p = prev.find(p => p.identity === participant.identity);
+
+            if (p) {
+              if (track.kind === 'video') {
+                p.videoTracks = p.videoTracks.map(vt => {
+                  if (vt.sid === tp.trackSid) {
+                    vt.setMuted(false);
+                  }
+                  return vt;
+                });
+              } else if (track.kind === 'audio') {
+                p.audioTracks = p.audioTracks.map(at => {
+                  if (at.sid === tp.trackSid) {
+                    at.setMuted(false);
+                  }
+                  return at;
+                });
+              }
+            }
+
+            return prev;
+          });
+        }
+      })
 
       const videoTrack = await createLocalVideoTrack({
         facingMode: 'user',
@@ -153,11 +224,25 @@ const RoomPage: React.FC<Props> = ({ name }) => {
         noiseSuppression: true,
       });
 
+      // попробовать через LocalTrackPublication
+
+      const cameraLtp = await room.localParticipant.setCameraEnabled(true);
+      const microphoneLtp = await room.localParticipant.setMicrophoneEnabled(true);
+
+      console.log(cameraLtp?.audioTrack); // undefined
+      console.log(cameraLtp?.videoTrack); // ...
+      console.log(microphoneLtp?.audioTrack); // ...
+      console.log(microphoneLtp?.videoTrack); // undefined
+
+      if (cameraLtp) {
+        setCameraLtp(cameraLtp);
+      }
+      if (microphoneLtp) {
+        setMicrophoneLtp(microphoneLtp);
+      }
+
       setLocalVideoTrack(videoTrack);
       setLocalAudioTrack(audioTrack);
-
-      const videoPublication = await room.localParticipant.publishTrack(videoTrack);
-      const audioPublication = await room.localParticipant.publishTrack(audioTrack);
     }
   }
 
@@ -166,7 +251,10 @@ const RoomPage: React.FC<Props> = ({ name }) => {
       room.removeAllListeners();
       room.off(RoomEvent.Connected);
       room.off(RoomEvent.Disconnected);
-      room.disconnect();
+      room.off(RoomEvent.TrackMuted);
+      room.off(RoomEvent.TrackUnmuted);
+      room.off(RoomEvent.TrackSubscribed);
+      await room.disconnect();
     }
   }
 
@@ -175,13 +263,12 @@ const RoomPage: React.FC<Props> = ({ name }) => {
     socket.disconnect();
   }, [socket]);
 
-  const handleExit = useCallback(() => {
-    if (room) {
-      room.disconnect();
-    }
+  const handleExit = useCallback(async () => {
+    await webRTCdisconnect();
     socketClear();
+    setName('');
     navigate(LOGIN_ROUTE);
-  }, []);
+  }, [name]);
 
   const scrollToEndChat = useCallback(() => {
     if (chatRef.current) {
@@ -339,17 +426,77 @@ const RoomPage: React.FC<Props> = ({ name }) => {
     setIsHoverOnHideTextChatBtn(false);
   }, []);
 
-  console.log('participants before render', participants)
+  const handleChangeMicrophone = async () => {
+    console.log('CHANGE MICROPHONE');
+    setIsMicrophoneEnabled(prev => !prev);
+    if (localAudioTrack) {
+      if (isMicrophoneEnabled) {
+        setMicrophoneLtp(prev => {
+          prev?.audioTrack?.mute().then(lat => {
+            if (lat) {
+              setLocalAudioTrack(lat);
+            }
+          });
+          return prev;
+        });
+        console.log('микрофон выключен');
+      } else {
+        setMicrophoneLtp(prev => {
+          prev?.audioTrack?.unmute().then(lat => {
+            if (lat) {
+              setLocalAudioTrack(lat);
+            }
+          });
+          return prev;
+        });
+        console.log('Микрофон включен');
+      }
+    }
+  };
+
+  const handleChangeCamera = async () => {
+    console.log('CHANGE CAMERA');
+    setIsCameraEnabled(prev => !prev);
+    if (localVideoTrack) {
+      if (isCameraEnabled) {
+        setCameraLtp(prev => {
+          prev?.videoTrack?.mute().then(lvt => {
+            if (lvt) {
+              setLocalVideoTrack(lvt);
+            }
+          });
+          return prev;
+        });
+        console.log('Камера выключена');
+      } else {
+        setCameraLtp(prev => {
+          prev?.videoTrack?.unmute().then(lvt => {
+            if (lvt) {
+              setLocalVideoTrack(lvt);
+            }
+          });
+          return prev;
+        });
+        console.log('Камера включена');
+      }
+    }
+  };
 
   return (
     <Box className={styles.wrapper}>
-      <Box sx={videoChatWrapperStyles} className={styles.videoChatWrapper}>
+      <Box
+        sx={videoChatWrapperStyles}
+        className={styles.videoChatWrapper}
+      >
         <Box className={styles.container}>
           <Box className={styles.screensWrapper}>
             {localAudioTrack ? (
-              <AudioRenderer track={localAudioTrack} isLocal={true} />
+              <AudioRenderer
+                track={localAudioTrack}
+                isLocal={true}
+              />
             ) : (
-              'no audio'
+              null
             )}
             <Box className={styles.screenOne}>
               {localVideoTrack ? (
@@ -363,47 +510,62 @@ const RoomPage: React.FC<Props> = ({ name }) => {
               )}
             </Box>
             {
-              /*
-              <>
-                <Box className={styles.screenOne}>
-                  {participants.length < 2 ? (
-                    <Cat3Icon className={styles.catIcon} />
-                  ) : (
-                    'Пользователь 2 подключен'
-                  )}
+              participants.map((p, index) => (
+                <Box
+                  key={p.identity}
+                  className={styles.screenOne}
+                >
+                  {
+                    (p.audioTracks && p.audioTracks[0]) ?
+                      <AudioRenderer
+                        track={p.audioTracks[0]}
+                        isLocal={false}
+                      /> :
+                      null
+                  }
+                  {
+                    (p.videoTracks && p.videoTracks[0]) ?
+                      <VideoRenderer
+                        track={p.videoTracks[0]}
+                        isLocal={false}
+                      /> :
+                      <Cat2Icon className={styles.catIcon}/>
+                  }
                 </Box>
-                <Box className={styles.screenOne}>
-                  {participants.length < 3 ? (
-                    <CatIcon className={styles.catIcon} />
-                  ) : (
-                    'Пользователь 3 подключен'
-                  )}
-                </Box>
-                <Box className={styles.screenOne}>
-                  {participants.length < 4 ? (
-                    <Cat2Icon className={styles.catIcon} />
-                  ) : (
-                    'Пользователь 4 подключен'
-                  )}
-                </Box>
-              </>
-              */
-             participants.map(p => (
-              <Box key={p.identity} className={styles.screenOne}>
-                {(p.audioTracks && p.audioTracks[0]) ? <AudioRenderer track={p.audioTracks[0]} isLocal={false}/> : 'no audio'}
-                {(p.videoTracks && p.videoTracks[0]) ? <VideoRenderer track={p.videoTracks[0]} isLocal={false}/> : <Cat2Icon className={styles.catIcon}/>}
-              </Box>
-             ))
+              ))
+            }
+            {
+              catsArray.map((catIcon, index) =>
+                index + 1 > participants.length ? 
+                  <Box
+                    key={index}
+                    className={styles.screenOne}
+                  >
+                    {catIcon}
+                  </Box> :
+                  null
+              )
             }
           </Box>
           <Box className={styles.btns}>
-            <Button>
-              <MicrophoneIcon />
+            <Button onClick={handleChangeMicrophone}>
+              {
+                isMicrophoneEnabled ?
+                  <MicrophoneIcon enabled={true}/> :
+                  <MuteMicrophoneIcon/>
+              }
             </Button>
-            <Button>
-              <CameraIcon />
+            <Button onClick={handleChangeCamera}>
+              {
+                isCameraEnabled ?
+                  <CameraIcon/> :
+                  <MuteCameraIcon/>
+              }
             </Button>
-            <Button className={styles.exitBtn} onClick={handleExit}>
+            <Button
+              className={styles.exitBtn}
+              onClick={handleExit}
+            >
               <PhoneIcon />
             </Button>
           </Box>
@@ -431,7 +593,9 @@ const RoomPage: React.FC<Props> = ({ name }) => {
             >
               <HideChatIcon fill={fillHideTextChatIcon} />
             </Button>
-            <Typography variant="h2">Chat</Typography>
+            <Typography variant="h2">
+              Chat
+            </Typography>
           </Box>
           <Box
             sx={messagesBlockStyles}

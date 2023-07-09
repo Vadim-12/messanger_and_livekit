@@ -55,6 +55,7 @@ const LoginPage: React.FC<Props> = ({ name, setName }) => {
     () => (validationError && !focus ? '* Please enter your name' : ''),
     [validationError, focus]
   );
+
   const inputStyles = useMemo(
     () => ({
       '& .MuiInputBase-root': {
@@ -81,6 +82,7 @@ const LoginPage: React.FC<Props> = ({ name, setName }) => {
     }),
     [validationError, focus]
   );
+
   const submitBtnStyles = useMemo(
     () => ({
       mt: 3,
@@ -97,6 +99,7 @@ const LoginPage: React.FC<Props> = ({ name, setName }) => {
     }),
     []
   );
+  
   const isError = useMemo(
     () => validationError && !focus,
     [validationError, focus]

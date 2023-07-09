@@ -1,6 +1,10 @@
 import { FC, SVGAttributes, memo } from 'react';
 
-const MicrophoneIcon: FC<SVGAttributes<SVGElement>> = (props) => {
+interface Props extends SVGAttributes<SVGElement> {
+  enabled: boolean;
+};
+
+const MicrophoneIcon: FC<Props> = ({ enabled, ...props }) => {
   return (
     <svg
       width="34"

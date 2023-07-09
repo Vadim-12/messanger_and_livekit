@@ -1,4 +1,4 @@
-import { IRouteFn } from "../../../types/socket";
+import { IRouteFn } from "../../types/socket";
 
 export const connect: IRouteFn = async (socket, data) => {
 	// logic in connect by sockets

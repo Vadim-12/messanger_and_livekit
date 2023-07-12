@@ -9,7 +9,7 @@ export default defineConfig({
     host: true,
     port: 3002,
     hmr: {
-      host: 'localhost',
+      host: 'genise-tk.ru',
       protocol: 'ws'
     }
   },

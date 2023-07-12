@@ -10,7 +10,7 @@ export default defineConfig({
     port: 3002,
     hmr: {
       host: 'genise-tk.ru',
-      protocol: 'ws'
+      protocol: 'https'
     }
   },
 });

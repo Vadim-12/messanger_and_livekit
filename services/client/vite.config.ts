@@ -10,6 +10,7 @@ export default defineConfig({
     port: 3002,
     hmr: {
       host: 'localhost',
+      protocol: 'ws'
     }
   },
 });

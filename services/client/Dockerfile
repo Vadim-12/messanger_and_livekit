@@ -4,7 +4,7 @@ WORKDIR /app
 COPY package.json /app
 COPY package-lock.json /app
 RUN npm i
-#RUN npm run build
 COPY . /app
+RUN npm run build
 EXPOSE 3002
 CMD [ "npm", "run", "dev" ]

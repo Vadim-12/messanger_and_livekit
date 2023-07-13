@@ -20,7 +20,7 @@ services:
     environment:
       - NODE_ENV=production
       - VITE_PORT=3002
-      - VITE_SERVER_URL=https://genise-tk.ru/api
+      - VITE_SERVER_URL=https://genise-tk.ru
       - VITE_LK_API_URL=wss://myapp-u3u448ny.livekit.cloud
       - VITE_LK_API_KEY=API7GEjtT6ypGiS
       - VITE_LK_SECRET_KEY=xPXzFTrs4Q8OdCpYHOfj02Xc2tkL933oqMMkFVSY5Wa

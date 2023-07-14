@@ -486,6 +486,10 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
     }
   };
 
+  console.log(vars.LK_API_URL);
+  console.log(vars.LK_API_KEY);
+  console.log(vars.SERVER_URL);
+
   return (
     <Box className={styles.wrapper}>
       <Box

@@ -7,4 +7,4 @@ COPY . /app
 RUN npm i
 RUN npm run build
 EXPOSE 3002
-CMD [ "npm", "run", "dev" ]
+CMD [ "npm", "run", "preview" ]

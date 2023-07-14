@@ -4,6 +4,7 @@ WORKDIR /app
 COPY package.json /app
 COPY package-lock.json /app
 RUN npm i
+RUN npm update typescript -g
 RUN npm run build
 COPY . /app
 EXPOSE 3002

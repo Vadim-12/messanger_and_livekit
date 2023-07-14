@@ -246,6 +246,10 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
     }
   }
 
+  useEffect(() => console.log(refreshThePage), [refreshThePage]);
+  useEffect(() => console.log(cameraLtp), [cameraLtp]);
+  useEffect(() => console.log(microphoneLtp), [microphoneLtp]);
+
   async function webRTCdisconnect() {
     if (room) {
       room.removeAllListeners();
@@ -510,7 +514,7 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
               )}
             </Box>
             {
-              participants.map((p, index) => (
+              participants.map((p) => (
                 <Box
                   key={p.identity}
                   className={styles.screenOne}

@@ -6,4 +6,4 @@ COPY package-lock.json /app
 RUN npm i
 COPY . /app
 EXPOSE 3002
-CMD [ "npm", "run", "dev" ]
+CMD [ "npm", "run", "preview" ]

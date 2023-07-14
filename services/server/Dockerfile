@@ -6,4 +6,4 @@ COPY package-lock.json /app
 RUN npm i
 COPY . /app
 EXPOSE 5000
-CMD ["npm", "run", "dev"]
+CMD [ "npm", "run", "dev" ]

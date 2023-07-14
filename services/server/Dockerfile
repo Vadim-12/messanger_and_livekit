@@ -3,8 +3,8 @@ RUN mkdir /app
 WORKDIR /app
 COPY package.json /app
 COPY package-lock.json /app
-RUN npm i
 COPY . /app
-#RUN npm run build
+RUN npm i
+RUN npm run build
 EXPOSE 5000
-CMD [ "npm", "run", "dev" ]
+CMD [ "npm", "run", "start" ]

@@ -6,5 +6,6 @@ COPY package-lock.json /app
 COPY . /app
 RUN npm i
 RUN npm run build
+RUN export $(env)
 EXPOSE 5000
 CMD [ "npm", "run", "dev" ]

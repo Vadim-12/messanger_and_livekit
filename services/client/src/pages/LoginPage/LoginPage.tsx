@@ -21,7 +21,6 @@ const LoginPage: React.FC<Props> = ({ name, setName }) => {
   const navigate = useNavigate();
 
   console.log(vars);
-  console.log(process.env);
 
   const isValidate = useMemo(() => {
     return name.length > 0;

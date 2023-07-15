@@ -8,7 +8,6 @@ import { useNavigate } from 'react-router-dom';
 import { colors } from 'theme/colors';
 import { ROOM_ROUTE } from 'config/const/routes/website/room';
 import { ROOM_IS_FULL_ROUTE } from 'config/const/routes/website/room/isFull';
-import { vars } from 'config/vars';
 
 interface Props {
   name: string;
@@ -19,8 +18,6 @@ const LoginPage: React.FC<Props> = ({ name, setName }) => {
   const [validationError, setValidationError] = useState<boolean>(false);
   const [focus, setFocus] = useState<boolean>(false);
   const navigate = useNavigate();
-
-  console.log(vars);
 
   const isValidate = useMemo(() => {
     return name.length > 0;

@@ -125,6 +125,7 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
         
         setParticipants(prev => {
           const p = prev.find(p => p.identity === participant.identity);
+
           if (!p) {
             const track = rtp.track;
             if (!track) {
@@ -250,7 +251,7 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
   useEffect(() => console.log(cameraLtp), [cameraLtp]);
   useEffect(() => console.log(microphoneLtp), [microphoneLtp]);
 
-  async function webRTCdisconnect() {
+  const webRTCdisconnect = useCallback(async () => {
     if (room) {
       room.removeAllListeners();
       room.off(RoomEvent.Connected);
@@ -260,7 +261,7 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
       room.off(RoomEvent.TrackSubscribed);
       await room.disconnect();
     }
-  }
+  }, [room]);
 
   const socketClear = useCallback(() => {
     socket.removeAllListeners();
@@ -272,7 +273,7 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
     socketClear();
     setName('');
     navigate(LOGIN_ROUTE);
-  }, [name]);
+  }, [socketClear, webRTCconnect, name]);
 
   const scrollToEndChat = useCallback(() => {
     if (chatRef.current) {
@@ -485,10 +486,6 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
       }
     }
   };
-
-  console.log(vars.LK_API_URL);
-  console.log(vars.LK_API_KEY);
-  console.log(vars.SERVER_URL);
 
   return (
     <Box className={styles.wrapper}>

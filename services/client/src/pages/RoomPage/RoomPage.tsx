@@ -105,6 +105,8 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
 
   const webRTCconnect = async () => {
     if (room) {
+      console.log(vars.LK_API_URL);
+      console.log(token);
       room.connect(vars.LK_API_URL, token);
 
       room.on(RoomEvent.ParticipantConnected, (np) => {

@@ -3,12 +3,14 @@ version: "3"
 services:
   backend:
     build: ../../services/server
+    env_file: ../../services/server/.env.production
     restart: always
     ports:
       - "5000:5000"
 
   frontend:
     build: ../../services/client
+    env_file: ../../services/client/.env.production
     restart: always
     depends_on:
       - backend

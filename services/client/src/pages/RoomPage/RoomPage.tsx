@@ -60,7 +60,7 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
   const navigate = useNavigate();
 
   const [participants, setParticipants] = useState<IParticipant[]>([]);
-  const [refreshThePage, setRefreshThePage] = useState<number>(0);
+  const [, setRefreshThePage] = useState<number>(0);
 
   const [messages, setMessages] = useState<IMessage[]>([]);
   const [inputMessage, setInputMessage] = useState<string>('');
@@ -78,10 +78,10 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
   const [token, setToken] = useState<string>('');
   const [localVideoTrack, setLocalVideoTrack] = useState<LocalVideoTrack>();
   const [localAudioTrack, setLocalAudioTrack] = useState<LocalAudioTrack>();
-  const [cameraLtp, setCameraLtp] = useState<LocalTrackPublication>();
-  const [microphoneLtp, setMicrophoneLtp] = useState<LocalTrackPublication>();
+  const [, setCameraLtp] = useState<LocalTrackPublication>();
+  const [, setMicrophoneLtp] = useState<LocalTrackPublication>();
 
-  const room = useMemo(() => new Room(), [socket]);
+  const room = new Room();
 
   const getToken = useCallback(async (identity: string) => {
     try {
@@ -105,9 +105,33 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
 
   const webRTCconnect = async () => {
     if (room) {
-      console.log(vars.LK_API_URL);
-      console.log(token);
-      room.connect(vars.LK_API_URL, token);
+      await room.connect(vars.LK_API_URL, token);
+
+      const oldParticipants: IParticipant[] = []
+
+      for (let p of room.participants.values()) {
+        let participant: IParticipant = {
+          identity: p.identity,
+          videoTracks: [],
+          audioTracks: []
+        };
+
+        for (let vrt of p.videoTracks.values()) {
+          if (vrt.track) {
+            participant.videoTracks.push(vrt.track);
+          }
+        }
+
+        for (let art of p.audioTracks.values()) {
+          if (art.track) {
+            participant.audioTracks.push(art.track);
+          }
+        }
+
+        oldParticipants.push(participant)
+      }
+      setParticipants(oldParticipants);
+      console.log('old participants', oldParticipants);
 
       room.on(RoomEvent.ParticipantConnected, (np) => {
         const videoTracks: RemoteTrack[] = [];
@@ -118,9 +142,13 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
           identity: np.identity,
         };
         setParticipants((prev) => [...prev, newParticipant]);
+
+        console.log('participant connected', newParticipant);
       });
       room.on(RoomEvent.ParticipantDisconnected, (dp) => {
         setParticipants((prev) => prev.filter((p) => p.identity !== dp.identity));
+
+        console.log('participant disconnected', dp)
       });
       room.on(RoomEvent.TrackSubscribed, (track, rtp, participant) => {
         setRefreshThePage(prev => prev + 1);
@@ -219,7 +247,6 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
 
       const videoTrack = await createLocalVideoTrack({
         facingMode: 'user',
-        // preset resolutions
         resolution: VideoPresets.h720,
       });
       const audioTrack = await createLocalAudioTrack({
@@ -227,15 +254,8 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
         noiseSuppression: true,
       });
 
-      // попробовать через LocalTrackPublication
-
       const cameraLtp = await room.localParticipant.setCameraEnabled(true);
       const microphoneLtp = await room.localParticipant.setMicrophoneEnabled(true);
-
-      console.log(cameraLtp?.audioTrack); // undefined
-      console.log(cameraLtp?.videoTrack); // ...
-      console.log(microphoneLtp?.audioTrack); // ...
-      console.log(microphoneLtp?.videoTrack); // undefined
 
       if (cameraLtp) {
         setCameraLtp(cameraLtp);
@@ -248,10 +268,6 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
       setLocalAudioTrack(audioTrack);
     }
   }
-
-  useEffect(() => console.log(refreshThePage), [refreshThePage]);
-  useEffect(() => console.log(cameraLtp), [cameraLtp]);
-  useEffect(() => console.log(microphoneLtp), [microphoneLtp]);
 
   const webRTCdisconnect = useCallback(async () => {
     if (room) {
@@ -497,24 +513,28 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
       >
         <Box className={styles.container}>
           <Box className={styles.screensWrapper}>
-            {localAudioTrack ? (
-              <AudioRenderer
-                track={localAudioTrack}
-                isLocal={true}
-              />
-            ) : (
-              null
-            )}
             <Box className={styles.screenOne}>
-              {localVideoTrack ? (
-                <VideoRenderer
-                  className={styles.videoContent}
-                  track={localVideoTrack}
-                  isLocal={true}
-                />
-              ) : (
-                <Cat4Icon className={styles.catIcon} />
-              )}
+              {
+                localAudioTrack ? (
+                  <AudioRenderer
+                    track={localAudioTrack}
+                    isLocal={true}
+                  />
+                ) : (
+                  null
+                )
+              }
+              {
+                localVideoTrack ? (
+                  <VideoRenderer
+                    className={styles.videoContent}
+                    track={localVideoTrack}
+                    isLocal={true}
+                  />
+                ) : (
+                  <Cat4Icon className={styles.catIcon} />
+                )
+              }
             </Box>
             {
               participants.map((p) => (

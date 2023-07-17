@@ -1,33 +1,30 @@
 version: "3"
 
-services: #Описываем используемые контейнеры
-  backend: #Контейнер бэкенда
-    build: ../../services/server #указываем путь к сервису (если у вас каталог с бэкендом называется иначе - нужно поменять)
-    restart: always
-    environment: #тут передаем переменные среды
-      - PORT=5000
-    ports:
-      - "5000:5000" #предполагая, что переданная выше переменная среды определяет порт процесса внутр контейнера
-
-  frontend: #Контейнер фронтенда, рассматриваем кейс когда использовался create-react-app
-    build: ../../services/client #указываем путь к сервису (если у вас каталог с фронтом назывется иначе - нужно поменять)
-    restart: always
-    depends_on:
-      - backend
-    environment: #передаем нужные переменные среды
-      - NODE_ENV=production
-      - VITE_PORT=3002
-      - VITE_SERVER_URL=http://localhost:5000
-      - VITE_LK_API_URL=ws://localhost:7880
-      - VITE_LK_API_KEY=apikey
-      - VITE_LK_SECRET_KEY=apisecret
-    ports:
-      - "3002:3002" #предполагаем что процесс внутри контейнера запущен на дефолтном для create-react-app 3000 порту
-
+services:
   livekit:
-    build: ../../services/livekit #указываем путь к сервису (если у вас каталог с фронтом назывется иначе - нужно поменять)
+    build: ../../services/livekit
     ports:
       - "7880:7880"
       - "7881:7881"
       - "7882:7882/udp"
       - "5100-6100:5100-6100"
+
+  backend:
+    build: ../../services/server
+    env_file:
+      - ../../services/server/.env.local
+    restart: always
+    depends_on:
+      - livekit
+    ports:
+      - "5000:5000"
+
+  frontend:
+    build: ../../services/client
+    env_file:
+      - ../../services/client/.env.local
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "3002:3002"

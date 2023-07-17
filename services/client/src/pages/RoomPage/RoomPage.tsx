@@ -81,7 +81,7 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
   const [, setCameraLtp] = useState<LocalTrackPublication>();
   const [, setMicrophoneLtp] = useState<LocalTrackPublication>();
 
-  const room = new Room();
+  const room = useMemo(() => new Room(), [name]);
 
   const getToken = useCallback(async (identity: string) => {
     try {
@@ -95,13 +95,6 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
       return null;
     }
   }, [name]);
-
-  useEffect(() => {
-    if (!configureWebRTC && room && token) {
-      webRTCconnect();
-      setConfigureWebRTC(true);
-    }
-  }, [room, token]);
 
   const webRTCconnect = async () => {
     if (room) {
@@ -131,24 +124,20 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
         oldParticipants.push(participant)
       }
       setParticipants(oldParticipants);
-      console.log('old participants', oldParticipants);
 
       room.on(RoomEvent.ParticipantConnected, (np) => {
         const videoTracks: RemoteTrack[] = [];
         const audioTracks: RemoteTrack[] = [];
+
         const newParticipant: IParticipant = {
           audioTracks,
           videoTracks,
           identity: np.identity,
         };
         setParticipants((prev) => [...prev, newParticipant]);
-
-        console.log('participant connected', newParticipant);
       });
       room.on(RoomEvent.ParticipantDisconnected, (dp) => {
         setParticipants((prev) => prev.filter((p) => p.identity !== dp.identity));
-
-        console.log('participant disconnected', dp)
       });
       room.on(RoomEvent.TrackSubscribed, (track, rtp, participant) => {
         setRefreshThePage(prev => prev + 1);
@@ -185,7 +174,6 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
         });
       });
       room.on(RoomEvent.TrackMuted, (tp, participant) => {
-        console.log('TRACK MUTED');
         const track = tp.track;
 
         if (track) {
@@ -215,7 +203,6 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
         }
       });
       room.on(RoomEvent.TrackUnmuted, (tp, participant) => {
-        console.log('TRACK UNMUTED');
         const track = tp.track;
 
         if (track) {
@@ -269,14 +256,23 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
     }
   }
 
+  useEffect(() => {
+    if (!configureWebRTC && room && token) {
+      webRTCconnect();
+      setConfigureWebRTC(true);
+    }
+  }, [room, token]);
+
   const webRTCdisconnect = useCallback(async () => {
     if (room) {
       room.removeAllListeners();
+      
       room.off(RoomEvent.Connected);
       room.off(RoomEvent.Disconnected);
       room.off(RoomEvent.TrackMuted);
       room.off(RoomEvent.TrackUnmuted);
       room.off(RoomEvent.TrackSubscribed);
+      
       await room.disconnect();
     }
   }, [room]);
@@ -291,7 +287,7 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
     socketClear();
     setName('');
     navigate(LOGIN_ROUTE);
-  }, [socketClear, webRTCconnect, name]);
+  }, [socketClear, webRTCdisconnect, name]);
 
   const scrollToEndChat = useCallback(() => {
     if (chatRef.current) {

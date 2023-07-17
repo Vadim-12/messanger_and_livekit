@@ -6,7 +6,7 @@ import React, {
   useState,
 } from 'react';
 import styles from './RoomPage.module.scss';
-import { Box, Button, Typography } from '@mui/material';
+import { Box, Button, Typography, useMediaQuery } from '@mui/material';
 import socket from 'socket';
 import { useNavigate } from 'react-router-dom';
 import { IMessage } from 'types/IMessage';
@@ -265,14 +265,6 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
 
   const webRTCdisconnect = useCallback(async () => {
     if (room) {
-      room.removeAllListeners();
-      
-      room.off(RoomEvent.Connected);
-      room.off(RoomEvent.Disconnected);
-      room.off(RoomEvent.TrackMuted);
-      room.off(RoomEvent.TrackUnmuted);
-      room.off(RoomEvent.TrackSubscribed);
-      
       await room.disconnect();
     }
   }, [room]);
@@ -370,11 +362,14 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
     [messages]
   );
 
+  const isLessThan1100px = useMediaQuery('screen and (max-width: 1100px)');
+  const isLessThan900px = useMediaQuery('screen and (max-width: 900px)');
+
   const videoChatWrapperStyles = useMemo(
     () => ({
-      width: `${isChatActive ? 76 : 100}%`,
+      width: `${isChatActive ? (isLessThan1100px ? (isLessThan900px ? 0 : 70) : 76) : 100}%`,
     }),
-    [isChatActive]
+    [isChatActive, isLessThan1100px]
   );
 
   const toggleChatBtnStyles = useMemo(
@@ -383,9 +378,10 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
       borderRadius: '50%',
       aspectRatio: 1,
       width: 12,
-      position: 'absolute',
-      bottom: isChatActive ? 32 : 44,
-      right: isChatActive ? 46 : 29,
+      position: 'fixed',
+      bottom: isLessThan900px ? 'none' : (isChatActive ? 32 : 44),
+      top: isLessThan900px ? 30 : 'none',
+      right: `calc(${isChatActive ? (isLessThan1100px ? '30%' : '24%') : '0px'} + ${isChatActive ? 46 : 29}px)`,
 
       '&:hover': {
         background: isChatActive
@@ -393,7 +389,14 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
           : colors.overlay.white.white75,
       },
     }),
-    [isChatActive]
+    [isChatActive, isLessThan1100px, isLessThan900px]
+  );
+
+  const textChatWrapperStyles = useMemo(
+    () => ({
+      width: isLessThan1100px ? (isLessThan900px ? '100%' : '30%') : '24%'
+    }),
+    [isLessThan900px]
   );
 
   const fillToggleChatIcon = useMemo(
@@ -414,6 +417,14 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
       alignItems: 'center',
     }),
     [messages.length]
+  );
+
+  const toolBtnsStyles = useMemo(
+    () => ({
+      left: isChatActive ? `calc(${isLessThan1100px ? 70 : 76}%/2)` : '50%',
+      transform: 'translateX(-50%)'
+    }),
+    [isChatActive, isLessThan1100px]
   );
 
   const messagesBlockContent = useMemo(
@@ -446,7 +457,6 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
   }, []);
 
   const handleChangeMicrophone = async () => {
-    console.log('CHANGE MICROPHONE');
     setIsMicrophoneEnabled(prev => !prev);
     if (localAudioTrack) {
       if (isMicrophoneEnabled) {
@@ -458,7 +468,6 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
           });
           return prev;
         });
-        console.log('микрофон выключен');
       } else {
         setMicrophoneLtp(prev => {
           prev?.audioTrack?.unmute().then(lat => {
@@ -468,13 +477,11 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
           });
           return prev;
         });
-        console.log('Микрофон включен');
       }
     }
   };
 
   const handleChangeCamera = async () => {
-    console.log('CHANGE CAMERA');
     setIsCameraEnabled(prev => !prev);
     if (localVideoTrack) {
       if (isCameraEnabled) {
@@ -486,7 +493,6 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
           });
           return prev;
         });
-        console.log('Камера выключена');
       } else {
         setCameraLtp(prev => {
           prev?.videoTrack?.unmute().then(lvt => {
@@ -496,7 +502,6 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
           });
           return prev;
         });
-        console.log('Камера включена');
       }
     }
   };
@@ -570,15 +575,24 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
               )
             }
           </Box>
-          <Box className={styles.btns}>
-            <Button onClick={handleChangeMicrophone}>
+          <Box
+            className={styles.btns}
+            sx={toolBtnsStyles}
+          >
+            <Button
+              className={styles.toolBtn}
+              onClick={handleChangeMicrophone}
+            >
               {
                 isMicrophoneEnabled ?
                   <MicrophoneIcon enabled={true}/> :
                   <MuteMicrophoneIcon/>
               }
             </Button>
-            <Button onClick={handleChangeCamera}>
+            <Button
+              className={styles.toolBtn}
+              onClick={handleChangeCamera}
+            >
               {
                 isCameraEnabled ?
                   <CameraIcon/> :
@@ -586,16 +600,16 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
               }
             </Button>
             <Button
-              className={styles.exitBtn}
+              className={styles.toolBtn + ' ' + styles.exitBtn}
               onClick={handleExit}
             >
               <PhoneIcon />
             </Button>
           </Box>
           <Button
-            sx={toggleChatBtnStyles}
-            onClick={() => setIsChatActive((prev) => !prev)}
-          >
+              sx={toggleChatBtnStyles}
+              onClick={() => setIsChatActive((prev) => !prev)}
+            >
             <ToggleChatIcon fill={fillToggleChatIcon} />
           </Button>
         </Box>
@@ -605,6 +619,7 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
           component="form"
           autoComplete="off"
           autoCapitalize="off"
+          sx={textChatWrapperStyles}
           className={styles.textChatWrapper}
         >
           <Box className={styles.header}>

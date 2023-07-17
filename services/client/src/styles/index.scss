@@ -8,4 +8,7 @@ body {
 }
 * {
 	font-family: Roboto Flex;
+	&::-webkit-scrollbar {
+    display: none;
+  }
 }

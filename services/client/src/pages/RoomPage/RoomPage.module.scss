@@ -2,16 +2,17 @@
 @import '../../styles/fonts.scss';
 
 .wrapper {
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   color: $white;
-
+  overflow-y: auto;
+  
   .videoChatWrapper {
     background: $black;
+    position: relative;
 
     .container {
       padding: 72px 37px 32px 32px;
-      position: relative;
       height: calc(100% - 105px);
 
       .screensWrapper {
@@ -41,15 +42,13 @@
         }
       }
       .btns {
-        position: absolute;
+        position: fixed;
         bottom: 32px;
-        left: 0;
-        right: 0;
         display: flex;
         justify-content: center;
         margin-top: 30px;
 
-        button {
+        .toolBtn {
           background: $white;
           border-radius: 50%;
           aspect-ratio: 1;
@@ -72,7 +71,6 @@
   }
   .textChatWrapper {
     background: $grayDark;
-    width: 24%;
     height: 100vh;
     position: relative;
 
@@ -109,9 +107,6 @@
         height: 70px;
         background: $grayDark;
       }
-      &::-webkit-scrollbar {
-        display: none;
-      }
       .emptyMessagesLabel {
         font-size: 14px;
         font-weight: 300;
@@ -120,6 +115,21 @@
         font-variation-settings: 'wdth' 130, 'GRAD' 0, 'slnt' 0, 'XTRA' 468,
           'XOPQ' 96, 'YOPQ' 79, 'YTLC' 514, 'YTUC' 712, 'YTAS' 750, 'YTDE' -203,
           'YTFI' 738;
+      }
+    }
+  }
+}
+
+@media screen and (max-width: 1000px) {
+  .wrapper .videoChatWrapper {
+    overflow-y: scroll;
+
+    .container .screensWrapper {
+      display: block;
+      padding-bottom: 120px;
+
+      .screenOne {
+        width: 100%;
       }
     }
   }

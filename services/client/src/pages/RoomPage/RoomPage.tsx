@@ -558,7 +558,7 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
                     <MicrophoneIcon className={styles.microphoneIcon}/>
                 }
                 <span className={styles.participantName}>
-                  {name} (Me)
+                  {name} (You)
                 </span>
               </Box>
             </Box>

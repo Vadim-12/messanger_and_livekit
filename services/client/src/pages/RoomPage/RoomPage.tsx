@@ -96,165 +96,176 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
     }
   }, [name]);
 
-  const webRTCconnect = async () => {
-    if (room) {
-      await room.connect(vars.LK_API_URL, token);
+  const webRTCconnect = useCallback(
+    async () => {
+      if (room) {
+        await room.connect(vars.LK_API_URL, token);
 
-      const oldParticipants: IParticipant[] = []
+        const oldParticipants: IParticipant[] = []
 
-      for (let p of room.participants.values()) {
-        let participant: IParticipant = {
-          identity: p.identity,
-          videoTracks: [],
-          audioTracks: []
-        };
+        for (let p of room.participants.values()) {
+          let participant: IParticipant = {
+            identity: p.identity,
+            name: p.name || '',
+            videoTracks: [],
+            audioTracks: []
+          };
 
-        for (let vrt of p.videoTracks.values()) {
-          if (vrt.track) {
-            participant.videoTracks.push(vrt.track);
+          for (let vrt of p.videoTracks.values()) {
+            if (vrt.track) {
+              participant.videoTracks.push(vrt.track);
+            }
           }
-        }
 
-        for (let art of p.audioTracks.values()) {
-          if (art.track) {
-            participant.audioTracks.push(art.track);
+          for (let art of p.audioTracks.values()) {
+            if (art.track) {
+              participant.audioTracks.push(art.track);
+            }
           }
+
+          oldParticipants.push(participant)
         }
-
-        oldParticipants.push(participant)
-      }
-      setParticipants(oldParticipants);
-
-      room.on(RoomEvent.ParticipantConnected, (np) => {
-        const videoTracks: RemoteTrack[] = [];
-        const audioTracks: RemoteTrack[] = [];
-
-        const newParticipant: IParticipant = {
-          audioTracks,
-          videoTracks,
-          identity: np.identity,
-        };
-        setParticipants((prev) => [...prev, newParticipant]);
-      });
-      room.on(RoomEvent.ParticipantDisconnected, (dp) => {
-        setParticipants((prev) => prev.filter((p) => p.identity !== dp.identity));
-      });
-      room.on(RoomEvent.TrackSubscribed, (track, rtp, participant) => {
+        setParticipants(oldParticipants);
         setRefreshThePage(prev => prev + 1);
-        
-        setParticipants(prev => {
-          const p = prev.find(p => p.identity === participant.identity);
 
-          if (!p) {
-            const track = rtp.track;
-            if (!track) {
+        room.on(RoomEvent.ParticipantConnected, (np) => {
+          const videoTracks: RemoteTrack[] = [];
+          const audioTracks: RemoteTrack[] = [];
+
+          const newParticipant: IParticipant = {
+            identity: np.identity,
+            name: np.name || '',
+            audioTracks,
+            videoTracks,
+          };
+
+          setParticipants((prev) => [...prev, newParticipant]);
+          setRefreshThePage(prev => prev + 1);
+        });
+        room.on(RoomEvent.ParticipantDisconnected, (dp) => {
+          setParticipants((prev) => prev.filter((p) => p.identity !== dp.identity));
+          setRefreshThePage(prev => prev + 1);
+        });
+        room.on(RoomEvent.TrackSubscribed, (track, rtp, participant) => {
+          setParticipants(prev => {
+            const p = prev.find(p => p.identity === participant.identity);
+
+            if (!p) {
+              const track = rtp.track;
+              if (!track) {
+                return prev;
+              }
+
+              const pp: IParticipant = {
+                identity: participant.identity,
+                name: '',
+                audioTracks: [],
+                videoTracks: [],
+              };
+
+              if (track.kind === 'audio') {
+                pp.audioTracks.push(track);
+              }
+
+              prev.push(pp);
               return prev;
             }
-
-            const pp: IParticipant = {
-              identity: participant.identity,
-              audioTracks: [],
-              videoTracks: [],
-            };
-
-            if (track.kind === 'audio') {
-              pp.audioTracks.push(track);
+            if (track.kind === 'video') {
+              p.videoTracks.push(track);
+            } else if (rtp.kind === 'audio') {
+              p.audioTracks.push(track);
             }
 
-            prev.push(pp);
             return prev;
-          }
-          if (track.kind === 'video') {
-            p.videoTracks.push(track);
-          } else if (rtp.kind === 'audio') {
-            p.audioTracks.push(track);
-          }
-
-          return prev;
+          });
+          setRefreshThePage(prev => prev + 1);
         });
-      });
-      room.on(RoomEvent.TrackMuted, (tp, participant) => {
-        const track = tp.track;
+        room.on(RoomEvent.TrackMuted, (tp, participant) => {
+          const track = tp.track;
 
-        if (track) {
-          setParticipants(prev => {
-            const p = prev.find(p => p.identity === participant.identity);
+          if (track) {
+            setParticipants(prev => {
+              const p = prev.find(p => p.identity === participant.identity);
 
-            if (p) {
-              if (track.kind === 'video') {
-                p.videoTracks = p.videoTracks.map(vt => {
-                  if (vt.sid === tp.trackSid) {
-                    vt.setMuted(true);
-                  }
-                  return vt;
-                });
-              } else if (track.kind === 'audio') {
-                p.audioTracks = p.audioTracks.map(at => {
-                  if (at.sid === tp.trackSid) {
-                    at.setMuted(true);
-                  }
-                  return at;
-                });
+              if (p) {
+                if (track.kind === 'video') {
+                  p.videoTracks = p.videoTracks.map(vt => {
+                    if (vt.sid === tp.trackSid) {
+                      vt.setMuted(true);
+                    }
+                    return vt;
+                  });
+                } else if (track.kind === 'audio') {
+                  p.audioTracks = p.audioTracks.map(at => {
+                    if (at.sid === tp.trackSid) {
+                      at.setMuted(true);
+                    }
+                    return at;
+                  });
+                }
               }
-            }
 
-            return prev;
-          });
-        }
-      });
-      room.on(RoomEvent.TrackUnmuted, (tp, participant) => {
-        const track = tp.track;
+              return prev;
+            });
+            setRefreshThePage(prev => prev + 1);
+          }
+        });
+        room.on(RoomEvent.TrackUnmuted, (tp, participant) => {
+          const track = tp.track;
 
-        if (track) {
-          setParticipants(prev => {
-            const p = prev.find(p => p.identity === participant.identity);
+          if (track) {
+            setParticipants(prev => {
+              const p = prev.find(p => p.identity === participant.identity);
 
-            if (p) {
-              if (track.kind === 'video') {
-                p.videoTracks = p.videoTracks.map(vt => {
-                  if (vt.sid === tp.trackSid) {
-                    vt.setMuted(false);
-                  }
-                  return vt;
-                });
-              } else if (track.kind === 'audio') {
-                p.audioTracks = p.audioTracks.map(at => {
-                  if (at.sid === tp.trackSid) {
-                    at.setMuted(false);
-                  }
-                  return at;
-                });
+              if (p) {
+                if (track.kind === 'video') {
+                  p.videoTracks = p.videoTracks.map(vt => {
+                    if (vt.sid === tp.trackSid) {
+                      vt.setMuted(false);
+                    }
+                    return vt;
+                  });
+                } else if (track.kind === 'audio') {
+                  p.audioTracks = p.audioTracks.map(at => {
+                    if (at.sid === tp.trackSid) {
+                      at.setMuted(false);
+                    }
+                    return at;
+                  });
+                }
               }
-            }
 
-            return prev;
-          });
+              return prev;
+            });
+            setRefreshThePage(prev => prev + 1);
+          }
+        })
+
+        const videoTrack = await createLocalVideoTrack({
+          facingMode: 'user',
+          resolution: VideoPresets.h720,
+        });
+        const audioTrack = await createLocalAudioTrack({
+          echoCancellation: true,
+          noiseSuppression: true,
+        });
+
+        const cameraLtp = await room.localParticipant.setCameraEnabled(true);
+        const microphoneLtp = await room.localParticipant.setMicrophoneEnabled(true);
+
+        if (cameraLtp) {
+          setCameraLtp(cameraLtp);
         }
-      })
+        if (microphoneLtp) {
+          setMicrophoneLtp(microphoneLtp);
+        }
 
-      const videoTrack = await createLocalVideoTrack({
-        facingMode: 'user',
-        resolution: VideoPresets.h720,
-      });
-      const audioTrack = await createLocalAudioTrack({
-        echoCancellation: true,
-        noiseSuppression: true,
-      });
-
-      const cameraLtp = await room.localParticipant.setCameraEnabled(true);
-      const microphoneLtp = await room.localParticipant.setMicrophoneEnabled(true);
-
-      if (cameraLtp) {
-        setCameraLtp(cameraLtp);
+        setLocalVideoTrack(videoTrack);
+        setLocalAudioTrack(audioTrack);
       }
-      if (microphoneLtp) {
-        setMicrophoneLtp(microphoneLtp);
-      }
-
-      setLocalVideoTrack(videoTrack);
-      setLocalAudioTrack(audioTrack);
-    }
-  }
+    },
+    [room, token, participants, setParticipants, setRefreshThePage, setCameraLtp, setMicrophoneLtp, setLocalAudioTrack, setLocalVideoTrack]
+  );
 
   useEffect(() => {
     if (!configureWebRTC && room && token) {
@@ -274,12 +285,15 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
     socket.disconnect();
   }, [socket]);
 
-  const handleExit = useCallback(async () => {
-    await webRTCdisconnect();
-    socketClear();
-    setName('');
-    navigate(LOGIN_ROUTE);
-  }, [socketClear, webRTCdisconnect, name]);
+  const handleExit = useCallback(
+    async () => {
+      await webRTCdisconnect();
+      socketClear();
+      setName('');
+      navigate(LOGIN_ROUTE);
+    },
+    [socketClear, webRTCdisconnect, setName]
+  );
 
   const scrollToEndChat = useCallback(() => {
     if (chatRef.current) {
@@ -311,8 +325,7 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
     socket.connect();
 
     return () => {
-      webRTCdisconnect();
-      socketClear();
+      handleExit();
     };
   }, []);
 
@@ -321,28 +334,31 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
     [inputMessage]
   );
 
-  const sendMessage = (e: React.FormEvent<HTMLElement>) => {
-    e.preventDefault();
+  const sendMessage = useCallback(
+    (e: React.FormEvent<HTMLElement>) => {
+      e.preventDefault();
 
-    if (validateInput()) {
-      const nowMoment = new Date(Date.now());
-      const newMessage: IMessage = {
-        id: Date.now(),
-        socketID: socket.id,
-        name,
-        text: inputMessage,
-        time: {
-          hours: nowMoment.getHours(),
-          minutes: nowMoment.getMinutes(),
-        },
-      };
-      setMessages((prev) => [...prev, newMessage]);
-      setInputMessage('');
-      socket.emit('newMessage', newMessage);
-      scrollToEndChat();
-      setSentMessages((prev) => prev + 1);
-    }
-  };
+      if (validateInput()) {
+        const nowMoment = new Date(Date.now());
+        const newMessage: IMessage = {
+          id: Date.now(),
+          socketID: socket.id,
+          name,
+          text: inputMessage,
+          time: {
+            hours: nowMoment.getHours(),
+            minutes: nowMoment.getMinutes(),
+          },
+        };
+        setMessages((prev) => [...prev, newMessage]);
+        setInputMessage('');
+        socket.emit('newMessage', newMessage);
+        scrollToEndChat();
+        setSentMessages((prev) => prev + 1);
+      }
+    },
+    [validateInput, socket, name, inputMessage, setMessages, setInputMessage, scrollToEndChat, setSentMessages]
+  );
 
   useEffect(() => {
     scrollToEndChat();
@@ -479,7 +495,7 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
         });
       }
     }
-  };
+  }
 
   const handleChangeCamera = async () => {
     setIsCameraEnabled(prev => !prev);
@@ -504,7 +520,7 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
         });
       }
     }
-  };
+  }
 
   return (
     <Box className={styles.wrapper}>
@@ -536,6 +552,16 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
                   <Cat4Icon className={styles.catIcon} />
                 )
               }
+              <Box className={styles.participantInfo}>
+                {
+                  (!localAudioTrack || localAudioTrack.isMuted) ?
+                    <MuteMicrophoneIcon className={styles.microphoneIcon}/> :
+                    <MicrophoneIcon className={styles.microphoneIcon}/>
+                }
+                <span className={styles.participantName}>
+                  {name} (Me)
+                </span>
+              </Box>
             </Box>
             {
               participants.map((p) => (
@@ -559,6 +585,16 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
                       /> :
                       <Cat2Icon className={styles.catIcon}/>
                   }
+                  <Box className={styles.participantInfo}>
+                    {
+                      (!p.audioTracks[0] || p.audioTracks[0].isMuted) ?
+                        <MuteMicrophoneIcon className={styles.microphoneIcon}/> :
+                        <MicrophoneIcon className={styles.microphoneIcon}/>
+                    }
+                    <span className={styles.participantName}>
+                      {p.name}
+                    </span>
+                  </Box>
                 </Box>
               ))
             }
@@ -585,8 +621,8 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
             >
               {
                 isMicrophoneEnabled ?
-                  <MicrophoneIcon enabled={true}/> :
-                  <MuteMicrophoneIcon/>
+                  <MicrophoneIcon className={styles.svgInToolBtn}/> :
+                  <MuteMicrophoneIcon className={styles.svgInToolBtn}/>
               }
             </Button>
             <Button
@@ -595,8 +631,8 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
             >
               {
                 isCameraEnabled ?
-                  <CameraIcon/> :
-                  <MuteCameraIcon/>
+                  <CameraIcon className={styles.svgInToolBtn}/> :
+                  <MuteCameraIcon className={styles.svgInToolBtn}/>
               }
             </Button>
             <Button

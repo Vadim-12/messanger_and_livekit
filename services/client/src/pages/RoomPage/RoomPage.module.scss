@@ -31,7 +31,26 @@
           justify-content: center;
           align-items: center;
           overflow: hidden;
+          position: relative;
 
+          .participantInfo {
+            position: absolute;
+            bottom: 30px;
+            border-radius: 9px;
+            left: 10px;
+            bottom: 10px;
+            background: $grayDark50;
+            padding: 5px 10px 5px 5px;
+            display: flex;
+            align-items: center;
+
+            .microphoneIcon {
+              color: white;
+            }
+            .participantName {
+              margin-left: 6px;
+            }
+          }
           .catIcon {
             color: $white25;
           }
@@ -47,6 +66,7 @@
         display: flex;
         justify-content: center;
         margin-top: 30px;
+        
 
         .toolBtn {
           background: $white;
@@ -57,6 +77,9 @@
 
           &:hover {
             background: $white75;
+          }
+          .svgInToolBtn {
+            color: black;
           }
         }
         .exitBtn {

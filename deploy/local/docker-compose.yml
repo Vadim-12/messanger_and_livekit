@@ -28,3 +28,8 @@ services:
       - backend
     ports:
       - "3002:3002"
+
+#  mongodb:
+ #   image: mongo:6-jammy
+  #  ports:
+   #   - '27017:27017'

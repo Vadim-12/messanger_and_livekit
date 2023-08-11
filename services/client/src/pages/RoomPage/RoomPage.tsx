@@ -47,16 +47,18 @@ import MuteCameraIcon from 'ui/icons/media/MuteCameraIcon';
 interface Props {
   name: string;
   setName: React.Dispatch<React.SetStateAction<string>>;
-};
+}
 
 const catsArray = [
-  //<Cat2Icon/>,
   <Cat3Icon className={styles.catIcon}/>,
   <Cat4Icon className={styles.catIcon}/>,
   <CatIcon className={styles.catIcon}/>,
-];
+]
 
 const RoomPage: React.FC<Props> = ({ name, setName }) => {
+  const isLessThan1100px = useMediaQuery('screen and (max-width: 1100px)');
+  const isLessThan900px = useMediaQuery('screen and (max-width: 900px)');
+  
   const navigate = useNavigate();
 
   const [participants, setParticipants] = useState<IParticipant[]>([]);
@@ -65,7 +67,7 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
   const [messages, setMessages] = useState<IMessage[]>([]);
   const [inputMessage, setInputMessage] = useState<string>('');
 
-  const [isChatActive, setIsChatActive] = useState<boolean>(true);
+  const [isChatActive, setIsChatActive] = useState<boolean>(!isLessThan900px);
   const [isHoverOnHideTextChatBtn, setIsHoverOnHideTextChatBtn] = useState<boolean>(false);
   const [sentMessages, setSentMessages] = useState<number>(0);
 
@@ -377,9 +379,6 @@ const RoomPage: React.FC<Props> = ({ name, setName }) => {
         : true,
     [messages]
   );
-
-  const isLessThan1100px = useMediaQuery('screen and (max-width: 1100px)');
-  const isLessThan900px = useMediaQuery('screen and (max-width: 900px)');
 
   const videoChatWrapperStyles = useMemo(
     () => ({
